@@ -1,0 +1,15 @@
+{
+  "name": "equastarjs",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  },
+  "dependencies": {
+    "arktype": "^2.2.7",
+    "date-fns": "^4.4.0",
+    "nanoid": "^6.0.2"
+  }
+}
