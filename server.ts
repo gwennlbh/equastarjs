@@ -83,7 +83,6 @@ Bun.serve({
         })
 
         for (const event of timetable) {
-          log("add", event)
           calendar.addFromEquastar(event)
         }
 

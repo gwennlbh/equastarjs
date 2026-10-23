@@ -48,6 +48,7 @@ export class Calendar {
   }
 
   async saveToDisk() {
+    console.debug(`[${this.key}] saving ${this.events.length} events to disk`)
     await this.cache.write(JSON.stringify(this.events))
   }
 
