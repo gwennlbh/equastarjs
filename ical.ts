@@ -4,12 +4,12 @@ import type { CalEvent } from "./calendars"
 export function ical(events: CalEvent[]) {
   return [
     "BEGIN:VCALENDAR",
+    "METHOD:REQUEST",
+    `PRODID:-//EQUASTARJS`,
     "VERSION:2.0",
     "CALSCALE:GREGORIAN",
-    `PRODID:${process.env.DOMAIN}`,
-    "METHOD:PUBLISH",
-    `X-WR-CALNAME:${process.env.DOMAIN}`,
-    "X-PUBLISHED-TTL:PT1H",
+    // `X-WR-CALNAME:${process.env.DOMAIN}`,
+    // "X-PUBLISHED-TTL:PT1H",
     ...events.flatMap((event) => [
       `BEGIN:VEVENT`,
       `UID:${event.uid}`,
