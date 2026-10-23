@@ -1,3 +1,4 @@
+import path from "node:path"
 import {
   CACHE_DIR,
   Calendar,
@@ -11,7 +12,7 @@ import { latestMonday } from "./utils.js"
 await restoreFromCache()
 
 console.info(
-  `Restored ${calendars.size} calendars from disk (scanned ./${CACHE_DIR})`,
+  `Restored ${calendars.size} calendars from disk (scanned ${path.resolve(CACHE_DIR)})`,
 )
 
 if (!process.env.DOMAIN) {
