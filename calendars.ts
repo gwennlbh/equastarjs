@@ -82,7 +82,7 @@ export class Calendar {
         this.add({
           start: datetime(event.hdebmidi),
           end: datetime(event.hfinmidi),
-          summary: "Shift",
+          summary: event.cmtMidi || "Shift",
           description: `Pause de ${event.tpausemidi} minutes`,
           location: event.etbNom,
           status: "CONFIRMED",
@@ -93,7 +93,7 @@ export class Calendar {
         this.add({
           start: datetime(event.hdebsoir),
           end: datetime(event.hfinsoir),
-          summary: "Shift",
+          summary: event.cmtSoir || "Shift",
           description: `Pause de ${event.tpausesoir} minutes`,
           location: event.etbNom,
           status: "CONFIRMED",

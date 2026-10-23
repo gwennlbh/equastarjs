@@ -8,6 +8,7 @@ import {
 import { ical } from "./ical.js"
 import { instance, login } from "./instances.js"
 import { latestMonday } from "./utils.js"
+import type { MyEquastar } from "./equastar.js"
 
 await restoreFromCache()
 
@@ -23,7 +24,7 @@ if (!process.env.DOMAIN) {
 Bun.serve({
   port: Number.parseInt(process.env.PORT || "3000"),
   routes: {
-    "/calendar/:email/:password": async ({ params, headers }) => {
+    "/calendar/:email/:password": async ({ params, headers, url }) => {
       const ip =
         headers.get("X-Real-Ip") ||
         headers.get("X-Forwarded-For") ||
@@ -33,9 +34,11 @@ Bun.serve({
 
       const { key } = login(params.email, params.password, ip)
 
-      return Response.redirect(`/calendar/${key}/calendar.ics`, 302)
+      const format = new URL(url).searchParams.get("format") || "ics"
+
+      return Response.redirect(`/calendar/${key}/calendar.${format}`, 302)
     },
-    "/calendar/:key/calendar.ics": async ({ params }) => {
+    "/calendar/:key/calendar.ics": async ({ params, url }) => {
       const equastar = instance(params.key)
       if (!equastar) {
         return new Response(
@@ -47,46 +50,11 @@ Bun.serve({
       }
 
       try {
-        const calendar = calendars.getOrInsertComputed(
+        const calendar = await sync(
+          equastar,
           params.key,
-          (key) => new Calendar(key),
+          new URL(url).searchParams,
         )
-
-        const log = (...args: unknown[]) =>
-          console.log(`[${params.key}]`, ...args)
-
-        if (!equastar.userId) {
-          log("No userId set, logging in...")
-          await equastar.login()
-        }
-
-        if (!equastar.userId) {
-          throw new Error("No userId set after login()")
-        }
-
-        log("request workplace")
-        const [workplace] = await equastar.request("getEtablissement", {
-          userId: equastar.userId,
-        })
-
-        if (!workplace) {
-          throw new Error("Workplace not found")
-        }
-
-        log("request timetable")
-        const timetable = await equastar.request("getPlanningPersonne", {
-          etbId: workplace.etb_id,
-          dtDeb: latestMonday(new Date()),
-          nbJours: 14,
-          persId: workplace.id_pers,
-          userId: equastar.userId,
-        })
-
-        for (const event of timetable) {
-          calendar.addFromEquastar(event)
-        }
-
-        void calendar.saveToDisk()
 
         return new Response(ical(calendar.events), {
           headers: {
@@ -99,9 +67,103 @@ Bun.serve({
         return new Response(String(error), { status: 500 })
       }
     },
+    "/calendar/:key/calendar.json": async ({ params, url }) => {
+      const equastar = instance(params.key)
+      if (!equastar) {
+        return new Response(
+          `Unknown key "${params.key}", please use /login first`,
+          {
+            status: 404,
+          },
+        )
+      }
+
+      try {
+        const calendar = await sync(
+          equastar,
+          params.key,
+          new URL(url).searchParams,
+        )
+        return Response.json(calendar.events)
+      } catch (error) {
+        console.error(error)
+        return new Response(String(error), { status: 500 })
+      }
+    },
+    "/calendar/:key/raw": async ({ params, url }) => {
+      const query = new URL(url).searchParams
+
+      const equastar = instance(params.key)
+      if (!equastar)
+        throw new Error(`Unknown key "${params.key}", please use /login first`)
+
+      const { timetable } = await retrieve(equastar, params.key, query)
+
+      return Response.json(timetable)
+    },
   },
 
   fetch() {
     return new Response("Not found", { status: 404 })
   },
 })
+
+async function retrieve(
+  equastar: MyEquastar,
+  key: string,
+  query: URLSearchParams = new URLSearchParams(),
+) {
+  const calendar = calendars.getOrInsertComputed(
+    key,
+    (key) => new Calendar(key),
+  )
+
+  const log = (...args: unknown[]) => console.log(`[${key}]`, ...args)
+
+  if (!equastar.userId) {
+    log("No userId set, logging in...")
+    await equastar.login()
+  }
+
+  if (!equastar.userId) {
+    throw new Error("No userId set after login()")
+  }
+
+  log("request workplace")
+  const [workplace] = await equastar.request("getEtablissement", {
+    userId: equastar.userId,
+  })
+
+  if (!workplace) {
+    throw new Error("Workplace not found")
+  }
+
+  log("request timetable")
+  const timetable = await equastar.request("getPlanningPersonne", {
+    etbId: workplace.etb_id,
+    dtDeb: latestMonday(
+      query.has("start") ? new Date(query.get("start")!) : new Date(),
+    ),
+    nbJours: 14,
+    persId: workplace.id_pers,
+    userId: equastar.userId,
+  })
+
+  return { calendar, timetable }
+}
+
+async function sync(
+  equastar: MyEquastar,
+  key: string,
+  query: URLSearchParams = new URLSearchParams(),
+) {
+  const { calendar, timetable } = await retrieve(equastar, key)
+
+  for (const event of timetable) {
+    calendar.addFromEquastar(event)
+  }
+
+  void calendar.saveToDisk()
+
+  return calendar
+}
