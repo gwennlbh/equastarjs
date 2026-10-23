@@ -35,7 +35,13 @@ export class Calendar {
     this.key = key
     this.events = events
     this.cache = Bun.file(`${CACHE_DIR}/${key}.json`)
-    void this.saveToDisk()
+    void this.createCache()
+  }
+
+  async createCache() {
+    await mkdir(CACHE_DIR, { recursive: true })
+    if (await this.cache.exists()) return
+    await this.cache.write(JSON.stringify(this.events))
   }
 
   async restoreFromDisk() {
