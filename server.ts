@@ -120,8 +120,11 @@ async function retrieve(
 
   const log = (...args: unknown[]) => console.log(`[${key}]`, ...args)
 
+  let freshLogin = false
+
   if (!equastar.userId) {
     log("No userId set, logging in...")
+    freshLogin = true
     await equastar.login()
   }
 
@@ -129,27 +132,37 @@ async function retrieve(
     throw new Error("No userId set after login()")
   }
 
-  log("request workplace")
-  const [workplace] = await equastar.request("getEtablissement", {
-    userId: equastar.userId,
-  })
+  try {
+    log("request workplace")
+    const [workplace] = await equastar.request("getEtablissement", {
+      userId: equastar.userId,
+    })
 
-  if (!workplace) {
-    throw new Error("Workplace not found")
+    if (!workplace) {
+      throw new Error("Workplace not found")
+    }
+
+    log("request timetable")
+    const timetable = await equastar.request("getPlanningPersonne", {
+      etbId: workplace.etb_id,
+      dtDeb: latestMonday(
+        query.has("start") ? new Date(query.get("start")!) : new Date(),
+      ),
+      nbJours: 14,
+      persId: workplace.id_pers,
+      userId: equastar.userId,
+    })
+
+    return { calendar, timetable }
+  } catch (error) {
+    if (!freshLogin) {
+      // Probably an expired token
+      equastar.clearToken()
+      return retrieve(equastar, key, query)
+    }
+
+    throw error
   }
-
-  log("request timetable")
-  const timetable = await equastar.request("getPlanningPersonne", {
-    etbId: workplace.etb_id,
-    dtDeb: latestMonday(
-      query.has("start") ? new Date(query.get("start")!) : new Date(),
-    ),
-    nbJours: 14,
-    persId: workplace.id_pers,
-    userId: equastar.userId,
-  })
-
-  return { calendar, timetable }
 }
 
 async function sync(
@@ -157,7 +170,7 @@ async function sync(
   key: string,
   query: URLSearchParams = new URLSearchParams(),
 ) {
-  const { calendar, timetable } = await retrieve(equastar, key)
+  const { calendar, timetable } = await retrieve(equastar, key, query)
 
   for (const event of timetable) {
     calendar.addFromEquastar(event)

@@ -85,6 +85,12 @@ export class MyEquastar {
     this.#tokenExpiresAt = addMinutes(new Date(), auth.expiresIn - 1)
   }
 
+  clearToken() {
+    this.#token = undefined
+    this.#tokenExpiresAt = undefined
+    this.userId = undefined
+  }
+
   async fetch(pathname: `/${string}`, body: unknown) {
     const response = await fetch(`https://my.equastar.fr/api${pathname}`, {
       method: "POST",
