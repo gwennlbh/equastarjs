@@ -1,6 +1,9 @@
 {
   "name": "equastarjs",
   "private": true,
+  "scripts": {
+    "dev": "bun run server.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
@@ -8,6 +11,7 @@
     "typescript": "^7"
   },
   "dependencies": {
+    "@date-fns/tz": "^1.5.0",
     "arktype": "^2.2.7",
     "date-fns": "^4.4.0",
     "nanoid": "^6.0.2"

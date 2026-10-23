@@ -8,6 +8,7 @@ import { type } from "arktype"
 import type { BunFile } from "bun"
 import { mkdir } from "node:fs/promises"
 import type { Requests } from "./equastar"
+import { tz } from "@date-fns/tz"
 
 export const CACHE_DIR = "events"
 
@@ -38,6 +39,10 @@ export class Calendar {
   }
 
   async restoreFromDisk() {
+    if (!(await this.cache.exists())) {
+      return
+    }
+
     const data = await this.cache.json()
     this.events = [...this.events, ...data]
   }
@@ -51,14 +56,22 @@ export class Calendar {
   }
 
   addFromEquastar(
-    event: (typeof Requests.timetable.response)["infer"]["data"]["RESULT"][number],
+    event: (typeof Requests.getPlanningPersonne.response)["infer"]["data"]["RESULT"][number],
   ) {
-    const datePart = dates.format(event.dtplg, "yyyyMMdd")
+    const datetime = ([hours, minutes]: readonly [number, number]) => {
+      let out = new Date(event.dtplg)
+      dates.setMinutes(out, minutes)
+      dates.setHours(out, hours)
+
+      return dates.formatISO(out, {
+        in: tz("Europe/Paris"),
+      })
+    }
 
     if (event.hdebmidi && event.hfinmidi) {
       this.add({
-        start: `${datePart}T${event.hdebmidi.join("")}00Z`,
-        end: `${datePart}T${event.hfinmidi.join("")}00Z`,
+        start: datetime(event.hdebmidi),
+        end: datetime(event.hfinmidi),
         summary: "Shift",
         description: `Pause de ${event.tpausemidi} minutes`,
         location: event.etbNom,
@@ -68,8 +81,8 @@ export class Calendar {
 
     if (event.hdebsoir && event.hfinsoir) {
       this.add({
-        start: `${datePart}T${event.hdebsoir.join("")}00Z`,
-        end: `${datePart}T${event.hfinsoir.join("")}00Z`,
+        start: datetime(event.hdebsoir),
+        end: datetime(event.hfinsoir),
         summary: "Shift",
         description: `Pause de ${event.tpausesoir} minutes`,
         location: event.etbNom,
@@ -88,7 +101,7 @@ export class Calendar {
   }
 }
 
-type CalEvent = (typeof CalEvent)["infer"]
+export type CalEvent = (typeof CalEvent)["infer"]
 
 const CalEvent = type({
   uid: "string",

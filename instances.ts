@@ -19,7 +19,17 @@ export function login(
   }
 
   const instance = new MyEquastar(email, password, ip)
-  const key = nanoid()
+
+  // Try a hash
+
+  const hash = new Uint8Array(32)
+  Bun.SHA256.hash(email + password, hash)
+  let key = hash.toHex()
+
+  if (instances.has(key)) {
+    key += `_${nanoid(12)}`
+  }
+
   instances.set(key, instance)
 
   return { key }

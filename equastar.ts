@@ -1,12 +1,7 @@
 import { scope } from "arktype"
 
-import { addMinutes } from "date-fns"
 import * as dates from "date-fns"
-import { CACHE_DIR, calendars, restoreFromCache } from "./calendars.js"
-
-await restoreFromCache()
-
-console.info(`Restored ${calendars.size} from disk (scanned ./${CACHE_DIR})`)
+import { addMinutes } from "date-fns"
 
 const type = scope({
   ID: "number.integer>=0",
@@ -20,7 +15,7 @@ const type = scope({
     "=>",
     (minutes) => {
       if (minutes === 0) return null
-      return [Math.floor(minutes / 60), minutes % 60]
+      return [Math.floor(minutes / 60), minutes % 60] as const
     },
   ],
 }).type
@@ -71,7 +66,7 @@ export class MyEquastar {
     const response = await this.fetch(
       "/auth",
       Requests.auth.request.assert({
-        username: username ?? this.username,
+        email: username ?? this.username,
         password: password ?? this.password,
         ip: ip ?? this.ip,
       }),
@@ -91,11 +86,14 @@ export class MyEquastar {
   }
 
   async fetch(pathname: `/${string}`, body: unknown) {
+    console.log(`POST ${pathname}`, body)
     const response = await fetch(`https://my.equastar.fr/api${pathname}`, {
       method: "POST",
       body: JSON.stringify(body),
       headers: this.#token
         ? {
+            "User-Agent":
+              "Projet d'automatisation pour exporter Equastar dans Google Agenda. Ceci est script inoffensif ! Voir https://github.com/gwennlbh/equastarjs",
             Authorization: `Bearer ${this.#token}`,
           }
         : undefined,
@@ -130,10 +128,10 @@ type Service = Exclude<keyof typeof Requests, "auth">
 
 export const Requests = {
   auth: {
-    request: type({ username: "string", password: "string", ip: "string.ip" }),
+    request: type({ email: "string", password: "string", ip: "string.ip" }),
     response: Response({ IDUSER: "ID" }),
   },
-  workplace: {
+  getEtablissement: {
     request: ServiceRequest("'getEtablissement'", { userId: "ID" }),
     response: Response({
       nom: "string",
@@ -141,7 +139,7 @@ export const Requests = {
       etb_id: "ID",
     }),
   },
-  timetable: {
+  getPlanningPersonne: {
     request: ServiceRequest("'getPlanningPersonne'", {
       etbId: "ID",
       userId: "ID",
