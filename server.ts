@@ -9,6 +9,7 @@ import { ical } from "./ical.js"
 import { instance, login } from "./instances.js"
 import { latestMonday } from "./utils.js"
 import type { MyEquastar } from "./equastar.js"
+import { type } from "arktype"
 
 await restoreFromCache()
 
@@ -108,11 +109,20 @@ Bun.serve({
   },
 })
 
+const RetrieveQueryParams = type({
+  start: ["string.date.iso.parse", "=", () => new Date().toISOString()],
+  weeks: "number.integer >= 1 = 2",
+})
+
 async function retrieve(
   equastar: MyEquastar,
   key: string,
   query: URLSearchParams = new URLSearchParams(),
 ) {
+  const { start, weeks } = RetrieveQueryParams.assert(
+    Object.fromEntries(query.entries()),
+  )
+
   const calendar = calendars.getOrInsertComputed(
     key,
     (key) => new Calendar(key),
@@ -145,10 +155,8 @@ async function retrieve(
     log("request timetable")
     const timetable = await equastar.request("getPlanningPersonne", {
       etbId: workplace.etb_id,
-      dtDeb: latestMonday(
-        query.has("start") ? new Date(query.get("start")!) : new Date(),
-      ),
-      nbJours: 14,
+      dtDeb: latestMonday(start),
+      nbJours: weeks * 7,
       persId: workplace.id_pers,
       userId: equastar.userId,
     })
