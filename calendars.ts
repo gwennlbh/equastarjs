@@ -61,8 +61,8 @@ export class Calendar {
   ) {
     const datetime = ([hours, minutes]: readonly [number, number]) => {
       let out = new Date(event.dtplg)
-      dates.setMinutes(out, minutes)
-      dates.setHours(out, hours)
+      out = dates.setMinutes(out, minutes)
+      out = dates.setHours(out, hours)
 
       return dates.formatISO(out, {
         in: tz("Europe/Paris"),
