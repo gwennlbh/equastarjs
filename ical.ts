@@ -1,5 +1,6 @@
 import * as dates from "date-fns"
 import type { CalEvent } from "./calendars"
+import { tz } from "@date-fns/tz"
 
 export function ical(events: CalEvent[]) {
   return [
@@ -29,5 +30,7 @@ export function ical(events: CalEvent[]) {
 }
 
 function datetime(date: Date) {
-  return dates.format(date, "yyyyMMdd'T'HHmmss'Z'")
+  return dates.format(date, "yyyyMMdd'T'HHmmss'Z'", {
+    in: tz("Etc/UTC"),
+  })
 }

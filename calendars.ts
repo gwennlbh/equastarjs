@@ -8,7 +8,7 @@ import { type } from "arktype"
 import type { BunFile } from "bun"
 import { mkdir } from "node:fs/promises"
 import type { Requests } from "./equastar"
-import { tz } from "@date-fns/tz"
+import { tz, TZDate } from "@date-fns/tz"
 
 export const CACHE_DIR = "events"
 
@@ -66,12 +66,11 @@ export class Calendar {
     event: (typeof Requests.getPlanningPersonne.response)["infer"]["data"]["RESULT"][number],
   ) {
     const datetime = ([hours, minutes]: readonly [number, number]) => {
-      let out = new Date(event.dtplg)
+      let out = new TZDate(event.dtplg, "Europe/Paris")
       out = dates.setMinutes(out, minutes)
       out = dates.setHours(out, hours)
-
       return dates.formatISO(out, {
-        in: tz("Europe/Paris"),
+        in: tz("Etc/UTC"),
       })
     }
 
