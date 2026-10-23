@@ -126,8 +126,6 @@ export class Calendar {
       ...CalEvent.omit("uid").assert(event),
       uid: this.#eventUid(),
     })
-
-    void this.saveToDisk()
   }
 }
 

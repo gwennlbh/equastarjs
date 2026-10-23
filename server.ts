@@ -1,4 +1,5 @@
 import path from "node:path"
+import * as dates from "date-fns"
 import {
   CACHE_DIR,
   Calendar,
@@ -35,9 +36,16 @@ Bun.serve({
 
       const { key } = login(params.email, params.password, ip)
 
-      const format = new URL(url).searchParams.get("format") || "ics"
+      const { format = "ics", ...rest } = Object.fromEntries(
+        new URL(url).searchParams.entries(),
+      )
 
-      return Response.redirect(`/calendar/${key}/calendar.${format}`, 302)
+      const query = new URLSearchParams(rest).toString()
+
+      return Response.redirect(
+        `/calendar/${key}/calendar.${format}?${query}`,
+        302,
+      )
     },
     "/calendar/:key/calendar.ics": async ({ params, url }) => {
       const equastar = instance(params.key)
@@ -111,7 +119,7 @@ Bun.serve({
 
 const RetrieveQueryParams = type({
   start: ["string.date.iso.parse", "=", () => new Date().toISOString()],
-  weeks: "number.integer >= 1 = 2",
+  weeks: type("string.integer.parse").to("number >= 1").default("2"),
 })
 
 async function retrieve(
@@ -128,12 +136,14 @@ async function retrieve(
     (key) => new Calendar(key),
   )
 
-  const log = (...args: unknown[]) => console.log(`[${key}]`, ...args)
+  console.log(
+    `[${key}] retreving ${dates.format(start, "yyyy-MM-dd")} + [0, ${weeks * 7}]`,
+  )
 
   let freshLogin = false
 
   if (!equastar.userId) {
-    log("No userId set, logging in...")
+    console.log(`[${key}] logging in `)
     freshLogin = true
     await equastar.login()
   }
@@ -143,7 +153,6 @@ async function retrieve(
   }
 
   try {
-    log("request workplace")
     const [workplace] = await equastar.request("getEtablissement", {
       userId: equastar.userId,
     })
@@ -152,7 +161,6 @@ async function retrieve(
       throw new Error("Workplace not found")
     }
 
-    log("request timetable")
     const timetable = await equastar.request("getPlanningPersonne", {
       etbId: workplace.etb_id,
       dtDeb: latestMonday(start),
