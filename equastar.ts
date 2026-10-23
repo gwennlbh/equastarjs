@@ -86,7 +86,6 @@ export class MyEquastar {
   }
 
   async fetch(pathname: `/${string}`, body: unknown) {
-    console.log(`POST ${pathname}`, body)
     const response = await fetch(`https://my.equastar.fr/api${pathname}`, {
       method: "POST",
       body: JSON.stringify(body),
