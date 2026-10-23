@@ -69,27 +69,50 @@ export class Calendar {
       })
     }
 
-    if (event.hdebmidi && event.hfinmidi) {
-      this.add({
-        start: datetime(event.hdebmidi),
-        end: datetime(event.hfinmidi),
-        summary: "Shift",
-        description: `Pause de ${event.tpausemidi} minutes`,
-        location: event.etbNom,
-        status: "CONFIRMED",
-      })
-    }
+    const removed = this.clearDay(new Date(event.dtplg))
 
-    if (event.hdebsoir && event.hfinsoir) {
-      this.add({
-        start: datetime(event.hdebsoir),
-        end: datetime(event.hfinsoir),
-        summary: "Shift",
-        description: `Pause de ${event.tpausesoir} minutes`,
-        location: event.etbNom,
-        status: "CONFIRMED",
-      })
+    try {
+      if (event.hdebmidi && event.hfinmidi) {
+        this.add({
+          start: datetime(event.hdebmidi),
+          end: datetime(event.hfinmidi),
+          summary: "Shift",
+          description: `Pause de ${event.tpausemidi} minutes`,
+          location: event.etbNom,
+          status: "CONFIRMED",
+        })
+      }
+
+      if (event.hdebsoir && event.hfinsoir) {
+        this.add({
+          start: datetime(event.hdebsoir),
+          end: datetime(event.hfinsoir),
+          summary: "Shift",
+          description: `Pause de ${event.tpausesoir} minutes`,
+          location: event.etbNom,
+          status: "CONFIRMED",
+        })
+      }
+    } catch (error) {
+      console.error(
+        `[${this.key}] error adding event from Equastar`,
+        error,
+        event,
+      )
+      this.events = [...this.events, ...removed]
     }
+  }
+
+  clearDay(day: Date) {
+    const removed = this.events.filter((event) =>
+      dates.isSameDay(event.start, day),
+    )
+
+    this.events = this.events.filter(
+      (event) => !removed.some((r) => r.uid === event.uid),
+    )
+
+    return removed
   }
 
   add(event: Omit<(typeof CalEvent)["inferIn"], "uid">) {
