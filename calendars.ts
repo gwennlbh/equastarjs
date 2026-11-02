@@ -65,7 +65,8 @@ export class Calendar {
   addFromEquastar(
     event: (typeof Requests.getPlanningPersonne.response)["infer"]["data"]["RESULT"][number],
   ) {
-    const datetime = ([hours, minutes]: readonly [number, number]) => {
+    const datetime = (time: null | readonly [number, number]) => {
+      const [hours, minutes] = time ?? [0, 0]
       let out = new TZDate(event.dtplg, "Europe/Paris")
       out = dates.setMinutes(out, minutes)
       out = dates.setHours(out, hours)
@@ -77,7 +78,7 @@ export class Calendar {
     const removed = this.clearDay(new Date(event.dtplg))
 
     try {
-      if (event.hdebmidi && event.hfinmidi) {
+      if (!event.absMidi && (event.hdebmidi || event.hfinmidi)) {
         this.add({
           start: datetime(event.hdebmidi),
           end: datetime(event.hfinmidi),
@@ -88,7 +89,7 @@ export class Calendar {
         })
       }
 
-      if (event.hdebsoir && event.hfinsoir) {
+      if (!event.absSoir && (event.hdebsoir || event.hfinsoir)) {
         this.add({
           start: datetime(event.hdebsoir),
           end: datetime(event.hfinsoir),
