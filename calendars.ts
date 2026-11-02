@@ -66,7 +66,7 @@ export class Calendar {
     event: (typeof Requests.getPlanningPersonne.response)["infer"]["data"]["RESULT"][number],
   ) {
     const datetime = (time: null | readonly [number, number]) => {
-      const [hours, minutes] = time ?? [0, 0]
+      const [hours, minutes] = time ?? [23, 59]
       let out = new TZDate(event.dtplg, "Europe/Paris")
       out = dates.setMinutes(out, minutes)
       out = dates.setHours(out, hours)
